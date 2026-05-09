@@ -1,0 +1,28 @@
+name: Scheduled Seat Sync
+
+on:
+  schedule:
+    - cron: '*/2 * * * *' # 每 2 分钟执行一次，可根据需要调整
+  workflow_dispatch: {}
+
+jobs:
+  trigger-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Vercel seat sync
+        run: |
+          set -e
+          if [ -z "${{ secrets.VERCEL_DOMAIN }}" ]; then
+            echo "Missing secret: VERCEL_DOMAIN"
+            exit 1
+          fi
+          if [ -z "${{ secrets.ADMIN_SECRET_KEY }}" ]; then
+            echo "Missing secret: ADMIN_SECRET_KEY"
+            exit 1
+          fi
+          curl -sS -X POST "https://${{ secrets.VERCEL_DOMAIN }}/api/sync" \
+            -H "Content-Type: application/json" \
+            -H "X-Admin-Key: ${{ secrets.ADMIN_SECRET_KEY }}" \
+            -o /tmp/sync-response.json
+          echo "Response from /api/sync:"
+          cat /tmp/sync-response.json
