@@ -2,7 +2,7 @@ name: Scheduled Seat Sync
 
 on:
   schedule:
-    - cron: '*/2 * * * *' # 每 2 分钟执行一次，可根据需要调整
+    - cron: '*/10 * * * *' # 每 10 分钟执行一次（调整为更合理的频率）
   workflow_dispatch: {}
 
 jobs:
@@ -12,17 +12,21 @@ jobs:
       - name: Trigger Vercel seat sync
         run: |
           set -e
+          echo "🕐 Starting sync at $(date)"
           if [ -z "${{ secrets.VERCEL_DOMAIN }}" ]; then
-            echo "Missing secret: VERCEL_DOMAIN"
+            echo "❌ Missing secret: VERCEL_DOMAIN"
             exit 1
           fi
           if [ -z "${{ secrets.ADMIN_SECRET_KEY }}" ]; then
-            echo "Missing secret: ADMIN_SECRET_KEY"
+            echo "❌ Missing secret: ADMIN_SECRET_KEY"
             exit 1
           fi
+          echo "🔄 Calling https://${{ secrets.VERCEL_DOMAIN }}/api/sync"
           curl -sS -X POST "https://${{ secrets.VERCEL_DOMAIN }}/api/sync" \
             -H "Content-Type: application/json" \
             -H "X-Admin-Key: ${{ secrets.ADMIN_SECRET_KEY }}" \
-            -o /tmp/sync-response.json
-          echo "Response from /api/sync:"
+            -o /tmp/sync-response.json \
+            -w "HTTP Status: %{http_code}\n"
+          echo "📄 Response from /api/sync:"
           cat /tmp/sync-response.json
+          echo "✅ Sync completed at $(date)"
